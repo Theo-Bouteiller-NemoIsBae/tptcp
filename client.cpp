@@ -38,37 +38,35 @@ int main(int argc, char** argv) {
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    //sockaddr_serveur.sin_addr.s_addr = htonl(INADDR_ANY); //inet_addr("10.203.9.81");
-
-    cout << inet_aton(ip, &addr.sin_addr) << endl;
+    inet_aton(ip, &addr.sin_addr);
 
     if (connect(sock, (struct sockaddr *) &addr,
             sizeof(sockaddr_in)) == -1)
         exitErreur("connect");
 
-    char buf[1024];
-    int len = 0;
-
     while (true) {
-        std::string query;
-        std::getline(std::cin, query);
-        cout << "envoyé: " << query << endl;
-        write(sock, query.c_str(), query.size());
 
-        int ret = read(sock, buf+len, sizeof(buf)-len);
-        if (ret == -1) {
-            exitErreur("read");
+        char httpquery[255];
+        int inputlen = read(fileno(stdin), httpquery, sizeof(httpquery));
+        httpquery[inputlen] = '\n';
+
+        while (true) {
+            write(sock, httpquery, inputlen);
+
+            char buf[1024];
+            int ret = read(sock, buf, sizeof(buf));
+
+            if (ret == -1) {
+                exitErreur("read");
+            }
+
+            if (ret == 0)
+                break;
+
+            buf[ret] = 0;
+            cout << buf << endl;
         }
-
-        if (ret == 0)
-            break;
-
-        len += ret;
     }
-
-
-    buf[len] = 0;
-    cout << "message (" << len << "): " <<  buf << endl;
 
     close(sock);
     return 0;
